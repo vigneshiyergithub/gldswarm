@@ -13,10 +13,15 @@ import java.util.Vector;
  */
 public class Swarm {
     private Node node;
+    private int positionTLD; //Posición del nodo en la matriz de decisión
     private float actionPerAgent;
     private Ant [] agents;
 
-    private Drivelane [][] zones;
+    private int [][] zones;
+    private Site [] sites2;
+    private float [] demand;
+    private float [] action;
+
     Drivelane [] outlanes;
     Drivelane [] inlanes;
     Drivelane [] temp = null;
@@ -35,7 +40,8 @@ public class Swarm {
     private float rho;
     ////////////////////////////////////////////////////////////////
 
-    public Swarm(int numAgents, Node node){
+    public Swarm(int numAgents, Node node, int k){
+        Drivelane [] allLanes;
         agents = new Ant[numAgents];
         for(int i = 0; i < numAgents; i++){
             agents[i] = new Ant(this);
@@ -43,32 +49,58 @@ public class Swarm {
         this.node = node;
 
         try{
+            allLanes = node.getAllLanes();
             Drivelane [] outlanes = node.getOutboundLanes();
             Drivelane [] inlanes = node.getInboundLanes();
 
-            zones = new Drivelane[inlanes.length][];
-            Drivelane [] temp = null;
+            allLanes = new Drivelane[outlanes.length + inlanes.length];
+            for(int i = 0; i < inlanes.length; i++){
+                allLanes[i] = inlanes[i];
+            }
+            for(int i = 0; i < outlanes.length; i++){
+                allLanes[inlanes.length + i] = outlanes[i];
+            }
+
+            sites2 = new Site[allLanes.length];
+            for(int i = 0; i < allLanes.length; i++)
+                sites2[i] = new Site(allLanes[i]);
+
+            zones = new int[allLanes.length][];
+            int [] temp = null;
             Drivelane ltemp;
             Vector drivelanes = new Vector();
 
             for(int i = 0; i < inlanes.length; i++){
                 ltemp = inlanes[i];
-                drivelanes.add(ltemp);
                 Road roadlane = ltemp.getRoad();
                 for(int j = 0; j < outlanes.length; j++){
                     if(!(outlanes[j].getRoad().equals(roadlane))){
-                        drivelanes.add(outlanes[j]);
+                        drivelanes.add(inlanes.length + j);
                     }
-                //temp = (Drivelane []) drivelanes.toArray();
                 }
-                
-                temp = new Drivelane[drivelanes.size()];
+                temp = new int[drivelanes.size()];
                 for(int j = 0; j < drivelanes.size(); j++){
-                    temp[j] = (Drivelane) drivelanes.get(j);
+                    temp[j] = (Integer) drivelanes.get(j);
                 }
                 drivelanes.clear();
                 zones[i] = temp;
             }
+            for(int i = 0; i < outlanes.length; i++){
+                ltemp = outlanes[i];
+                Road roadlane = ltemp.getRoad();
+                for(int j = 0; j < inlanes.length; j++){
+                    if(!(inlanes[j].getRoad().equals(roadlane))){
+                        drivelanes.add(j);
+                    }
+                }
+                temp = new int[drivelanes.size()];
+                for(int j = 0; j < drivelanes.size(); j++){
+                    temp[j] = (Integer) drivelanes.get(j);
+                }
+                drivelanes.clear();
+                zones[inlanes.length + i] = temp;
+            }
+
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -77,6 +109,9 @@ public class Swarm {
     
     public void step(){
         Ant agent;
+        for(int j = 0; j < sites2.length; j++)
+            sites2[j].calculateDemand();
+
         for(int i = 0; i < agents.length; i++){
             agent = agents[i];
             
@@ -163,10 +198,14 @@ public class Swarm {
     public void printZones(){
         System.out.printf("//////////////////////////////////////////////\n");
         System.out.printf("Swarm Node Id: %d \n", this.node.getId());
-        System.out.println("Swarm Zones: \n");
+        System.out.println("Swarm Sites: \n");
+        //for(int i = 0; i < sites.length; i++)
+            //System.out.printf("%d \t", sites[i].getId());
+
+        System.out.println("\nSwarm Zones: \n");
         for(int i = 0; i < zones.length; i++){
             for(int k = 0; k < zones[i].length; k++){
-                System.out.printf("%d \t", zones[i][k].getId());
+                System.out.printf("%d \t", zones[i][k]);
             }
             System.out.printf("\n");
         }
