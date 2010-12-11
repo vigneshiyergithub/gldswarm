@@ -23,9 +23,11 @@ public class Site {
     private long initialTime = 0;
 
     private Ant [] agents = new Ant[numSlots];
+    private Vector ady;
 
     public Site(Drivelane dl){
         this.dl = dl;
+        ady = new Vector();
     }
 
     public void calculateDemand(){
@@ -64,5 +66,9 @@ public class Site {
                 output += (agents[i].getAction()*agents[i].FOREING_FACTOR);
         }
         return output;
+    }
+
+    public void addAdj(Site s){
+
     }
 }

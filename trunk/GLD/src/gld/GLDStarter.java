@@ -80,11 +80,11 @@ public class GLDStarter
 	public void processOption (String option)
 	{	if ("-splash".equals(option))
 		{	System.out.println("Splash!");
-			splashScreen=true;
+			splashScreen=false;
 		}
 		else if ("-nosplash".equals(option))
 		{	System.out.println("No Splash!");
-			splashScreen=true;
+			splashScreen=false;
 		}
 		else if ("--".equals(option))
 			noFurtherOptions=true;

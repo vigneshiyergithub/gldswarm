@@ -100,7 +100,7 @@ public class TLCFactory
     	"RL Sarsa 4",
     	"RL Sarsa 5",
     	"RL Sarsa 6",
-        "ATAA (Remote)",
+        "ATAA",
         };
 
 	protected static final String[] xmlNames = {
