@@ -43,8 +43,7 @@ public class ATAA_TLC extends TLController
 
         protected Site sites [][];
         protected Drivelane drivelanes [][];
-        protected Site [][][] adj;
-
+        
         int numAgents = 10;
 
         public ATAA_TLC(Infrastructure i) {
@@ -54,45 +53,54 @@ public class ATAA_TLC extends TLController
                 Node [] nodes = i.getAllNodes();
                 
                 sites = new Site[nodes.length][];
-                adj = new Site[sites.length][][];
+                drivelanes = new Drivelane[nodes.length][];
                 numNodes = tld.length;
                 Drivelane dl = null;
                 Node nodeTemp = null;
-
+                Node nodeFrom = null;
+                //Se crea la matriz de sites //////////////////////////////////
                 for(int j = 0; j < nodes.length; j++){
+                    //System.out.printf("\nIndice 1 = %d\n", j);
                     int temp = tld[j].length;
                     sites[j] = new Site[temp];
-                    adj[j] = new Site[temp][];
+                    drivelanes[j] = new Drivelane[temp];
                     for(int k = 0; k < temp; k++){
+                        //System.out.printf("\nIndice 2 = %d\n", k);
                         dl = tld[j][k].getTL().getLane();
                         sites[j][k] = new Site(dl);
+                        drivelanes[j][k] = dl;
+                    }
+                }
+                ///////////////////////////////////////////////////////////////
+
+                //Se establecen las vecindades entre sites /////////////////////
+                for(int j = 0; j < sites.length; j++){
+                    int temp = sites[j].length;
+                    for(int k = 0; k < temp; k++){
+                        dl = sites[j][k].getDrivelane();
                         nodeTemp = dl.getNodeLeadsTo();
+                        nodeFrom = dl.getNodeComesFrom();
                         try{
                             Drivelane [] outlanes = nodeTemp.getOutboundLanes();
-
                             for(int l = 0; l < outlanes.length; l++){
                                 Node nl = outlanes[l].getNodeLeadsTo();
-                                int indexNode = java.util.Arrays.binarySearch(nodes, nl);
-                                adj[j][k] = new Site[outlanes.length];
-                                for(int m = 0; m < sites[indexNode].length; m++){
-                                    adj[j][k][m] = sites[indexNode][m];
+                                int indexNode = Site.searchIndex(nodes, nl);
+                                System.out.printf("\nIndice Node = %d\n", indexNode);
+                                int indexDl = Site.searchIndex(drivelanes[indexNode], outlanes[l]);
+                                System.out.printf("\nIndice Drivelane = %d\n", indexDl);
+                                if((indexNode != -1)&&(indexDl != -1)&& nodeFrom != nodes[indexNode]){
+                                    sites[j][k].addAdj(sites[indexNode][indexDl]);
                                 }
                             }
                         }catch(Exception e){
                             e.printStackTrace();
                         }
-
-
-
                     }
                 }
-
-
-
-
-                Node node = null;
+                ///////////////////////////////////////////////////////////////
+                //Se crean los swarms///////////////////////////////////////////
                 swarms = new Swarm[numNodes];
-
+                Node node = null;
 
                 System.out.printf("All Nodes = \t");
                 for(int j = 0; j < nodes.length; j++)
@@ -107,7 +115,7 @@ public class ATAA_TLC extends TLController
                             System.out.printf("%d\t", tld[k][j].getTL().getLane().getId());
                         //System.out.printf("Node Junctions Id:  %d\n", nodes[k].getId());
                         System.out.printf("\nIndice = %d\n", k);
-                        swarms[k] = new Swarm(numAgents, node, k);
+                        swarms[k] = new Swarm(numAgents, node, k, sites);
                     }
                 }
 
@@ -140,6 +148,20 @@ public class ATAA_TLC extends TLController
 	{
 		//System.out.println("RandomTLC.decideTLs");
                 //tld[0][0].getTL().
+                for(int j = 0; j < sites.length; j++)
+                    for(int k = 0; k < sites[j].length; k++)
+                        sites[j][k].calculateDemand();
+
+                for(int i = 0; i < swarms.length; i++){
+                    if(swarms[i] != null)
+                        swarms[i].step();
+                }
+
+                for(int i = 0; i < sites.length; i++){
+                    for(int j = 0; j < sites[i].length; j++){
+                        tld[i][j].setGain(sites[i][j].calculateOutput());
+                    }
+                }
 		return tld;
 	}
 

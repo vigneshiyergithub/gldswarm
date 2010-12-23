@@ -69,6 +69,50 @@ public class Site {
     }
 
     public void addAdj(Site s){
+        if(ady != null){
+            ady.add(s);
+        }
+    }
 
+    public Vector getAdy(){
+        return this.ady;
+    }
+
+    public Drivelane getDrivelane(){
+        return this.dl;
+    }
+
+    public int getId(){
+        return this.dl.getId();
+    }
+
+    public static int searchIndex(Object [] array, Object obj){
+        int id = 0;
+        int tid = 0; //Temporal para buscar id en array
+        int index = -1;
+        if(obj instanceof Node)
+            id = ((Node) obj).getId();
+
+        if(obj instanceof Drivelane)
+            id = ((Drivelane)obj).getId();
+
+        System.out.printf("\nIndice Busqueda = %d\n", id);
+
+        for(int i= 0; i < array.length; i++){
+            if(array[i] instanceof Node)
+                tid = ((Node) array[i]).getId();
+
+            if(array[i] instanceof Drivelane)
+                tid = ((Drivelane) array[i]).getId();
+
+            if(id == tid){
+                index = i;
+                System.out.printf("\nIndice Encontrado = %d\n", index);
+                break;
+            }else{
+                index = -1;
+            }
+        }
+        return index;
     }
 }
