@@ -17,7 +17,9 @@ public class Swarm {
     private float actionPerAgent;
     private Ant [] agents;
 
-    private Site [][] zones;
+    private Site [][] zones;  // Matriz que almacena las zonas y tiene en cuenta la vecindad entre ellas.
+
+    private Vector zonas;
     private Site [][] sites;
     private float [] demand;
     private float [] action;
@@ -44,13 +46,11 @@ public class Swarm {
         Drivelane [] allLanes;
         this.sites = sites;
         agents = new Ant[numAgents];
-        for(int i = 0; i < numAgents; i++){
-            agents[i] = new Ant(this);
-        }
+        
         this.node = node;
-
+        this.alpha = 0.5f;
         zones = new Site[sites[k].length][];
-
+//        zonas =
         for(int i = 0; i < zones.length; i++){
             Vector ady = sites[k][i].getAdy();
             zones[i] = new Site[ady.size()+1];
@@ -60,6 +60,9 @@ public class Swarm {
             }
         }
 
+        for(int i = 0; i < numAgents; i++){
+            agents[i] = new Ant(this, zones);
+        }
     }
     
     public void step(){
@@ -67,7 +70,7 @@ public class Swarm {
         
         for(int i = 0; i < agents.length; i++){
             agent = agents[i];
-            
+            agent.step();
         }
         
     }

@@ -19,6 +19,7 @@ public class Site {
     private float spc = 2.5f; //Stimuli per car
     private float alpha = 0.5f; //Time rate variable
     private int numSlots = 5;
+    private int numAgents = 0;
     private int freeSlots = numSlots;
     private long initialTime = 0;
 
@@ -48,16 +49,22 @@ public class Site {
         if(freeSlots>0){
            agents[numSlots - freeSlots + 1] = agent;
            freeSlots--;
+           numAgents++;
            return true;
         }else
             return false;
+    }
+
+    public void freeSlot(){
+        freeSlots++;
+        numAgents--;
     }
 
     public float calculateOutput(){
         float output = 0.0f;
         Node agentNode = null;
         Node siteNode = dl.getNodeLeadsTo();
-        for(int i = 0; i < agents.length; i++){
+        for(int i = 0; i < numAgents; i++){
             agentNode = agents[i].getSwarm().getNode();
             if(agentNode == siteNode)
                 output += agents[i].getAction();
@@ -114,5 +121,9 @@ public class Site {
             }
         }
         return index;
+    }
+
+    public double getDemand(){
+        return this.demand;
     }
 }
