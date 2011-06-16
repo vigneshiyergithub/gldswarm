@@ -66,8 +66,6 @@ public class Ant {
                 }
             }
         }
-
-        
     }
 
     public void changeTask(int newTask){
