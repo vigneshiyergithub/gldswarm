@@ -1,3 +1,4 @@
+
 /*-----------------------------------------------------------------------
  * Copyright (C) 2001 Green Light District Team, Utrecht University 
  *
@@ -26,7 +27,12 @@ import java.util.* ;
 import java.awt.Point;
 
 import java.io.*;
-
+import java.net.Socket;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.InetAddress;
 
 /**
  * This controller will switch TrafficLights at random.
@@ -35,108 +41,47 @@ import java.io.*;
  * @version 1.0
  */
 public class ATAA_TLC extends TLController
-{	protected int numNodes;
+{	protected int num_nodes;
 	protected Random seed;
 	protected final static String shortXMLName="tlc-ataa";
-        protected ATAA_gui control;
-	protected Swarm [] swarms;
-
-        protected Site sites [][];
-        protected Drivelane drivelanes [][];
-        
-        int numAgents = 10;
+        protected GUIControl control;
+	protected DatagramSocket socket;
+        protected DatagramPacket p;
+        protected int PORT = 3052;
+        protected Float [] buff_rx;
+        protected Byte [] buff_tx = new Byte[4];
+        protected String address = "localhost";
+        protected Comm comm;
 
         public ATAA_TLC(Infrastructure i) {
 		super(i);
-		//control = new ATAA_gui();
-                //control.setVisible(true);
-                Node [] nodes = i.getAllNodes();
+		control = new GUIControl();
+                control.setVisible(true);
+		num_nodes = tld.length;
+
+                buff_rx = new Float[4];
+
+                comm = new Comm(address, PORT, buff_tx, buff_rx);
+
+                for(int j = 0; j<buff_rx.length; j++){
+                    buff_rx[j] = 0.0f;
+                }
                 
-                sites = new Site[nodes.length][];
-                drivelanes = new Drivelane[nodes.length][];
-                numNodes = tld.length;
-                Drivelane dl = null;
-                Node nodeTemp = null;
-                Node nodeFrom = null;
-                //Se crea la matriz de sites //////////////////////////////////
-                for(int j = 0; j < nodes.length; j++){
-                    //System.out.printf("\nIndice 1 = %d\n", j);
-                    int temp = tld[j].length;
-                    sites[j] = new Site[temp];
-                    drivelanes[j] = new Drivelane[temp];
-                    for(int k = 0; k < temp; k++){
-                        //System.out.printf("\nIndice 2 = %d\n", k);
-                        dl = tld[j][k].getTL().getLane();
-                        sites[j][k] = new Site(dl);
-                        drivelanes[j][k] = dl;
-                    }
-                }
-                ///////////////////////////////////////////////////////////////
+                //comm.connect();
 
-                //Se establecen las vecindades entre sites /////////////////////
-                for(int j = 0; j < sites.length; j++){
-                    int temp = sites[j].length;
-                    for(int k = 0; k < temp; k++){
-                        dl = sites[j][k].getDrivelane();
-                        nodeTemp = dl.getNodeLeadsTo();
-                        nodeFrom = dl.getNodeComesFrom();
-                        try{
-                            Drivelane [] outlanes = nodeTemp.getOutboundLanes();
-                            for(int l = 0; l < outlanes.length; l++){
-                                Node nl = outlanes[l].getNodeLeadsTo();
-                                int indexNode = Site.searchIndex(nodes, nl);
-                                System.out.printf("\nIndice Node = %d\n", indexNode);
-                                int indexDl = Site.searchIndex(drivelanes[indexNode], outlanes[l]);
-                                System.out.printf("\nIndice Drivelane = %d\n", indexDl);
-                                if((indexNode != -1)&&(indexDl != -1)&& nodeFrom != nodes[indexNode]){
-                                    sites[j][k].addAdj(sites[indexNode][indexDl]);
-                                }
-                            }
-                        }catch(Exception e){
-                            e.printStackTrace();
-                        }
-                    }
-                }
-                ///////////////////////////////////////////////////////////////
-                //Se crean los swarms///////////////////////////////////////////
-                swarms = new Swarm[numNodes];
-                Node node = null;
-
-                System.out.printf("All Nodes = \t");
-                for(int j = 0; j < nodes.length; j++)
-                    System.out.printf("%d \t", nodes[j].getId());
-
-                for(int k = 0; k < numNodes; k++){
-                    if(tld[k].length > 0)
-                        node = tld[k][1].getTL().getNode();
-                    if((node instanceof Junction) && node.getNumRealSigns()>0){
-                        System.out.printf("\nDrivelanes = ");
-                        for(int j = 0; j < tld[k].length; j++)
-                            System.out.printf("%d\t", tld[k][j].getTL().getLane().getId());
-                        //System.out.printf("Node Junctions Id:  %d\n", nodes[k].getId());
-                        System.out.printf("\nIndice = %d\n", k);
-                        swarms[k] = new Swarm(numAgents, node, k, sites);
-                    }
-                }
-
-                // Prueba para ver las zonas generadas en los enjambres
-                for(int k = 0; k < swarms.length; k++){
-                    if(swarms[k] != null)
-                        swarms[k].printZones();
-                }
-                //////////////////////////////////////////////////////
-
+                Thread serverT = new Thread(comm);
+                serverT.start();
 	}
 	
 	/*public ATAA_TLC(Infrastructure infra)
 	{ 	super(infra);
-	  	seed=n-ew Random();
+	  	seed=new Random();
 		num_nodes = tld.length;
 	}*/
 	
 	public void setInfrastructure(Infrastructure i) {
 		super.setInfrastructure(i);
-		numNodes = tld.length;
+		num_nodes = tld.length;
 	}
 	 
 	/**
@@ -147,27 +92,50 @@ public class ATAA_TLC extends TLController
 	public TLDecision[][] decideTLs()
 	{
 		//System.out.println("RandomTLC.decideTLs");
-                //tld[0][0].getTL().
-                for(int j = 0; j < sites.length; j++)
-                    for(int k = 0; k < sites[j].length; k++)
-                        sites[j][k].calculateDemand();
+            if(comm!=null && comm.isConnected())
+                control.setConectado(true);
 
-                for(int i = 0; i < swarms.length; i++){
-                    if(swarms[i] != null)
-                        swarms[i].step();
-                }
 
-                for(int i = 0; i < sites.length; i++){
-                    for(int j = 0; j < sites[i].length; j++){
-                        tld[i][j].setGain(sites[i][j].calculateOutput());
-                    }
-                }
+                int num_lanes, temp_len;
+                float gain;
+                //System.out.printf("Num Nodes = %d\n", num_nodes);
+
+                for (int i=0; i < num_nodes; i++) {
+			num_lanes = tld[i].length;
+                        //System.out.printf("Num Lanes = %d\n", num_lanes);
+                        gain = 0;
+                        int delay = 0;
+                        Roaduser ru = null;
+
+			for (int j=0; j < num_lanes; j++){
+                            //gain = control.getQ0(j);
+                            try{
+                                ru = (Roaduser) tld[i][j].getTL().getLane().getQueue().getFirst();
+                            }catch(Exception e){
+                                delay = 0;
+                            }
+
+                            if(ru != null)
+                                delay = ru.getDelay();
+                            else
+                                delay = 0;
+
+                            System.out.printf("Delay = %d\n", delay);
+
+                            buff_tx[j] = (byte) (1*tld[i][j].getTL().getLane().getNumRoadusersWaiting() + 0.5*delay);
+                            //gain = seed.nextFloat();
+                            //System.out.printf("Ganancia %d = %f\n", j,buff_rx[j]);
+                            gain = buff_rx[j];
+                            
+                            tld[i][j].setGain(gain);
+                        }
+
+		}
 		return tld;
 	}
 
 	public void updateRoaduserMove(Roaduser _ru, Drivelane _prevlane, Sign _prevsign, int _prevpos, Drivelane _dlanenow, Sign _signnow, int _posnow, PosMov[] posMovs, Drivelane desired)
 	{
-            
 	}
 	
 	// XMLSerializable implementation
